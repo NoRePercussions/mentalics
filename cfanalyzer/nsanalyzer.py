@@ -1,5 +1,6 @@
 import typing as t
 import plistlib as pl
+from copy import copy
 from dataclasses import dataclass
 from queue import Queue
 
@@ -19,19 +20,11 @@ class ArchivedData:
         self.objects = {pl.UID(i): o for i, o in enumerate(objects)}
 
 
-class ClassDefinition:
-    hierarchy: list
-    name: str
-
-    def __init__(self, archived_data: dict):
-        self.hierarchy = archived_data["$classes"]
-        self.name = archived_data["$classname"]
-
-
 class InferredClass:
     name: str
 
     superclass: t.Optional["InferredClass"]
+    subclasses: list["InferredClass"]
 
     attrs: t.Optional[set[str]]
     final_attrs: t.Optional[set[str]]
@@ -39,8 +32,18 @@ class InferredClass:
     def __init__(self, name: str, superclass: t.Optional["InferredClass"], final_attrs: t.Optional[set[str]] = None):
         self.name = name
         self.superclass = superclass
+        self.subclasses = []
         self.attrs = None
         self.final_attrs = final_attrs
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __repr__(self):
+        return f"<InferredClass {self.name}>"
 
 
 
@@ -79,7 +82,10 @@ class NSAnalyzer:
         # Then we can use each class and the hierarchy table
         # to infer parent classes.
 
-        classes: dict[pl.UID, InferredClass] = {}
+        classes: dict[str, InferredClass] = {}
+
+        universal_class = InferredClass("$Object", None)
+        classes["$Object"] = universal_class
 
         for cls_uid, instance_uids in instances.items():
             cls_archived = data.objects[cls_uid]
@@ -93,7 +99,7 @@ class NSAnalyzer:
                 parent_class_names = cls_archived["$classes"][:-1]
                 parent_class_names_top_down = parent_class_names[::-1]
 
-                last_class: t.Optional[InferredClass] = None
+                last_class: t.Optional[InferredClass] = universal_class
                 for class_name in parent_class_names_top_down:
                     # If we haven't recorded this class yet, do so
                     if class_name not in classes:
@@ -104,6 +110,9 @@ class NSAnalyzer:
                         classes[class_name] = cls
                     else:
                         cls = classes[class_name]
+
+                    if cls not in last_class.subclasses:
+                        last_class.subclasses.append(cls)
                     last_class = cls
 
                 # Now, we need to look at our resultant class
@@ -134,8 +143,61 @@ class NSAnalyzer:
                             # Sanity check attributes
                             assert cls.final_attrs == set(attrs)
 
+        # We have a list of classes and their final attributes
+        # Now we need to find all classes with the same superclass
+        # and take the intersection of their attributes to find
+        # superclass attributes.
 
-        pass  # debug point
+        # This might not always work: e.g. if the class hierarchy
+        # is NSObject > NSDictionary > NSMutableDictionary
+        # and no other objects are used, all attributes of
+        # NSMutableDictionary will be assigned to NSObject.
+
+        self._infer_attrs(universal_class)
+
+        pass  # debug point: check that `classes` makes sense
+
+    def _infer_attrs(self, cls: t.Optional[InferredClass]):
+        # We want to take all the final attributes that each class has
+        # and walk up the inheritance tree to infer what attrs each
+        # parent class has.
+
+        # We are visiting each class for the first time.
+        # Setting attrs marks it as visited
+        cls.attrs = set()
+
+        # Find all attribute sets of children...
+        all_subclass_attrs: list[set] = []
+        for subclass in cls.subclasses:
+            if subclass.attrs is None:
+                self._infer_attrs(subclass)
+            all_subclass_attrs.append(subclass.attrs)
+
+        # ...then intersect them if there are any children,
+        # or else say no mutual attributes
+        if len(all_subclass_attrs) > 0:
+            mutual_attrs = set.intersection(*all_subclass_attrs)
+        else:
+            mutual_attrs = set()
+
+        mutual_attrs: set
+        final_attrs: set = cls.final_attrs or set()
+
+        for subclass in cls.subclasses:
+            # Inferred attrs should be a member of all
+            # child classes
+            assert subclass.attrs.issuperset(mutual_attrs)
+            subclass.attrs.difference_update(mutual_attrs)
+
+            # Other attrs on the parent class should not
+            # appear in its children
+            assert len(subclass.attrs.intersection(final_attrs)) == 0
+
+        # Add mutual and final attributes to class
+        cls.attrs = mutual_attrs.union(final_attrs)
+
+
+
 
 
 
