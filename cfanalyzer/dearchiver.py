@@ -138,6 +138,37 @@ class Decoder:
         self._current_obj_uid = None
         return obj
 
+    def _decode_object_reference(self, uid: pl.UID):
+        """
+        Decode an object that is referenced by another
+        object. Usually, this is a string.
+
+        It may be:
+        - An instance of a class
+        - A class definition
+        - An integer, float, string
+
+        We do not expect to need to dearchive class definitions,
+        so they will cause an error.
+        """
+        archived_object = self._data.objects[uid]
+
+        if self._is_archived_instance(archived_object):
+            self._to_decode.append(uid)
+            obj = UnresolvedNSCoding(self, uid)
+
+        elif self._is_archived_single_primitive(archived_object):
+            # plutil dearchives these for us
+            obj = archived_object
+
+        elif self._is_archived_class_definition(archived_object):
+            raise ValueError(f"Cannot dearchive class definition")
+
+        else:
+            raise ValueError(f"The type seen was not expected")
+
+        return obj
+
 
     def _get_class_of_archived_instance(self, obj: dict) -> type[NSCoding]:
         class_uid = obj["$class"]
@@ -203,9 +234,8 @@ class Decoder:
 
     def _decode_attribute(self, archive: t.Any) -> t.Any:
         if self._is_archived_reference(archive):
-            assert isinstance(archive, pl.UID)
-            self._to_decode.append(archive)
-            return UnresolvedNSCoding(self, archive)
+            uid = archive
+            return self._decode_object_reference(uid)
 
         if self._is_archived_list(archive):
             # Fixme: if we return an UnresolvedNSCoding in a list,
