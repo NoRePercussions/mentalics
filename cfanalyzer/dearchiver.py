@@ -124,7 +124,7 @@ class Decoder:
             cls = self._get_class_of_archived_instance(archived_object)
             obj = self._objects.setdefault(uid, cls.__new__(cls))
 
-            return obj
+            obj.decode_archive(self)
 
         elif self._is_archived_single_primitive(archived_object):
             # plutil dearchives these for us
