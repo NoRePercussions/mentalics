@@ -4,20 +4,7 @@ from copy import copy
 from dataclasses import dataclass
 from queue import Queue
 
-
-
-class ArchivedData:
-    version: int
-    objects: dict[pl.UID, t.Any]
-    root: pl.UID
-
-    def __init__(self, fp: t.IO):
-        as_dict = pl.load(fp)
-        self.version = as_dict["$version"]
-        self.root = as_dict["$top"]["root"]
-
-        objects = as_dict["$objects"]
-        self.objects = {pl.UID(i): o for i, o in enumerate(objects)}
+from .archived_data import ArchivedData
 
 
 class InferredClass:
@@ -47,18 +34,18 @@ class InferredClass:
 
 
 
-class NSAnalyzer:
+class Explorer:
     """
     Takes an unknown NSKeyedArchiver plist
     and analyzes its components
     """
 
-    _classes: dict[str, ]
+    _classes: dict[str, InferredClass]
     _UID_map: dict[int, ]
 
     def __init__(self, fp: t.IO):
         data = ArchivedData(fp)
-        self._find_classes(data)
+        self._classes = self._find_classes(data)
 
     def _find_classes(self, data: ArchivedData):
         # We want to find all classes.
@@ -155,7 +142,7 @@ class NSAnalyzer:
 
         self._infer_attrs(universal_class)
 
-        pass  # debug point: check that `classes` makes sense
+        return classes
 
     def _infer_attrs(self, cls: t.Optional[InferredClass]):
         # We want to take all the final attributes that each class has
@@ -195,6 +182,15 @@ class NSAnalyzer:
 
         # Add mutual and final attributes to class
         cls.attrs = mutual_attrs.union(final_attrs)
+
+    def _into_objects(self, data: ArchivedData):
+        # We have a description of classes:
+        # now we need to walk through the data
+        # and turn it into those classes.
+        #
+        # Probably going to rely on Dearchiver
+
+        pass
 
 
 
