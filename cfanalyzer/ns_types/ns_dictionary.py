@@ -7,11 +7,10 @@ class NSDictionary(NSCoding):
     def __init__(self, data: dict):
         self.data = data
 
-    @classmethod
-    def decode_archive(cls, dearchiver) -> "NSCoding":
+    def decode_archive(self, dearchiver) -> "NSCoding":
         keys: list = dearchiver.decode("NS.keys")
         values: list = dearchiver.decode("NS.objects")
-        return cls(dict(zip(keys, values)))
+        return self.__init__(dict(zip(keys, values)))
 
     def encode_archive(self, archiver) -> None:
         pass

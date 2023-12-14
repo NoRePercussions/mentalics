@@ -7,9 +7,8 @@ from cfanalyzer.nscoding import NSCoding
 
 @dataclass
 class Ignore(NSCoding):
-    @classmethod
-    def decode_archive(cls, dearchiver) -> "NSCoding":
-        return cls()
+    def decode_archive(self, dearchiver) -> "NSCoding":
+        return self.__init__()
 
     def encode_archive(self, archiver) -> None:
         pass

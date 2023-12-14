@@ -7,10 +7,9 @@ class NSMutableData(NSCoding):
     def __init__(self, data: bytes):
         self.data = data
 
-    @classmethod
-    def decode_archive(cls, dearchiver) -> "NSCoding":
+    def decode_archive(self, dearchiver) -> "NSCoding":
         data: bytes = dearchiver.decode("NS.data")
-        return cls(data)
+        return self.__init__(data)
 
     def encode_archive(self, archiver) -> None:
         pass

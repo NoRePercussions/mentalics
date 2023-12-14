@@ -12,14 +12,13 @@ class NSImage(NSCoding):
     reps: t.Any  # eventually: another class
     resizing_mode: int  # eventually: enum
 
-    @classmethod
-    def decode_archive(cls, dearchiver) -> "NSCoding":
+    def decode_archive(self, dearchiver) -> "NSCoding":
         accessibility_description = dearchiver.decode("NSAccessibilityDescription")
         color = dearchiver.decode("NSColor")
         image_flags = dearchiver.decode("NSImageFlags")
         reps = dearchiver.decode("NSReps")
         resizing_mode = dearchiver.decode("NSResizingMode")
-        return cls(
+        return self.__init__(
             accessibility_description,
             color,
             image_flags,

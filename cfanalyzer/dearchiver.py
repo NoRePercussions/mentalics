@@ -5,7 +5,7 @@ from copy import copy
 from functools import wraps
 from queue import Queue
 
-from .nscoding import NSCoding, UnresolvedNSCoding
+from .nscoding import NSCoding
 from .archived_data import ArchivedData
 from .ns_types import NS_TYPES
 
@@ -88,6 +88,7 @@ class Decoder:
     def __init__(self, data: ArchivedData, class_map: dict[str, type[NSCoding]]):
         self._data = data
         self._class_map = class_map
+
         self._objects = {}
 
         self._current_obj_uid = None
@@ -99,7 +100,6 @@ class Decoder:
 
         while self._to_decode:
             uid = self._to_decode.popleft()
-            archive = self._data.objects[uid]
             self._decode_object(uid)
 
         return self._objects[root_uid]
@@ -120,9 +120,10 @@ class Decoder:
         archived_object = self._data.objects[uid]
 
         if self._is_archived_instance(archived_object):
+            # Get the (uninitialized) object or create and store a new one
             cls = self._get_class_of_archived_instance(archived_object)
-            obj = cls.decode_archive(self)
-            self._objects[uid] = obj
+            obj = self._objects.setdefault(uid, cls.__new__(cls))
+
             return obj
 
         elif self._is_archived_single_primitive(archived_object):
@@ -154,20 +155,22 @@ class Decoder:
         archived_object = self._data.objects[uid]
 
         if self._is_archived_instance(archived_object):
+            # Get the (uninitialized) object or create and store a new one
+            cls = self._get_class_of_archived_instance(archived_object)
+            obj = self._objects.setdefault(uid, cls.__new__(cls))
+
+            # Will be initialized when visited later
             self._to_decode.append(uid)
-            obj = UnresolvedNSCoding(self, uid)
+            return obj
 
-        elif self._is_archived_single_primitive(archived_object):
+        if self._is_archived_single_primitive(archived_object):
             # plutil dearchives these for us
-            obj = archived_object
+            return archived_object
 
-        elif self._is_archived_class_definition(archived_object):
+        if self._is_archived_class_definition(archived_object):
             raise ValueError(f"Cannot dearchive class definition")
 
-        else:
-            raise ValueError(f"The type seen was not expected")
-
-        return obj
+        raise ValueError(f"The type seen was not expected")
 
 
     def _get_class_of_archived_instance(self, obj: dict) -> type[NSCoding]:
