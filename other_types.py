@@ -2,7 +2,7 @@ import token
 import typing as t
 from dataclasses import dataclass
 
-from cfanalyzer.nscoding import NSCoding
+from mentalics.nscoding import NSCoding
 
 
 @dataclass

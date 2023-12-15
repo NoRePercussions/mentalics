@@ -1,4 +1,4 @@
-from cfanalyzer import Dearchiver
+from mentalics import Dearchiver
 from other_types import Ignore
 
 test_file = "test.plist"
