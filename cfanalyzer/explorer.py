@@ -4,7 +4,7 @@ from copy import copy
 from dataclasses import dataclass
 from queue import Queue
 
-from .archived_data import ArchivedData
+from .ns_keyed_archive import NSKeyedArchive
 
 
 class InferredClass:
@@ -27,7 +27,7 @@ class InferredClass:
         return hash(self.name)
 
     def __eq__(self, other):
-        return self.name == other.name
+        return self.name == other.class_name
 
     def __repr__(self):
         return f"<InferredClass {self.name}>"
@@ -44,17 +44,17 @@ class Explorer:
     _UID_map: dict[int, ]
 
     def __init__(self, fp: t.IO):
-        data = ArchivedData(fp)
+        data = NSKeyedArchive(fp)
         self._classes = self._find_classes(data)
 
-    def _find_classes(self, data: ArchivedData):
+    def _find_classes(self, data: NSKeyedArchive):
         # We want to find all classes.
         # We can start at the root object
         # and explore pl.UIDs.
 
         instances: dict[pl.UID, list[pl.UID]] = {}
 
-        for uid, entry in data.objects.items():
+        for uid, entry in data._objects.items():
             if isinstance(entry, dict) and "$class" in entry:  # a class instance
                 defintion_uid = entry["$class"]
 
@@ -75,9 +75,9 @@ class Explorer:
         classes["$Object"] = universal_class
 
         for cls_uid, instance_uids in instances.items():
-            cls_archived = data.objects[cls_uid]
+            cls_archived = data._objects[cls_uid]
             for uid in instance_uids:
-                instance_archived: dict = data.objects[uid]
+                instance_archived: dict = data._objects[uid]
                 attrs = instance_archived.keys()
                 attrs = filter(lambda a: not a.startswith("$"), attrs)
 
@@ -183,7 +183,7 @@ class Explorer:
         # Add mutual and final attributes to class
         cls.attrs = mutual_attrs.union(final_attrs)
 
-    def _into_objects(self, data: ArchivedData):
+    def _into_objects(self, data: NSKeyedArchive):
         # We have a description of classes:
         # now we need to walk through the data
         # and turn it into those classes.
