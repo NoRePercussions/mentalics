@@ -7,11 +7,11 @@ from ..nscoding import NSCoding
 class NSData(NSCoding):
     data: bytes
 
-    def decode_archive(self, dearchiver) -> "NSCoding":
-        data: bytes = dearchiver.decode("NS.data")
+    def __init_from_archive__(self, decoder) -> "NSCoding":
+        data: bytes = decoder.decode("NS.data")
         return self.__init__(data)
 
-    def encode_archive(self, archiver) -> None:
+    def encode_archive(self, coder) -> None:
         pass
 
     def __bytes__(self):

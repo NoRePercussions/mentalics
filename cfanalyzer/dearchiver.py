@@ -117,7 +117,7 @@ class Decoder:
 
         if isinstance(archived_object, ArchivedInstance):
             obj = self._get_instance_object(archived_object)
-            obj.decode_archive(self)
+            obj.__init_from_archive__(self)
 
         elif self._is_archived_single_primitive(archived_object):
             # plutil dearchives these for us

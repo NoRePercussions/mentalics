@@ -12,12 +12,12 @@ class NSImage(NSCoding):
     reps: t.Any  # eventually: another class
     resizing_mode: int  # eventually: enum
 
-    def decode_archive(self, dearchiver) -> "NSCoding":
-        accessibility_description = dearchiver.decode("NSAccessibilityDescription")
-        color = dearchiver.decode("NSColor")
-        image_flags = dearchiver.decode("NSImageFlags")
-        reps = dearchiver.decode("NSReps")
-        resizing_mode = dearchiver.decode("NSResizingMode")
+    def __init_from_archive__(self, decoder) -> "NSCoding":
+        accessibility_description = decoder.decode("NSAccessibilityDescription")
+        color = decoder.decode("NSColor")
+        image_flags = decoder.decode("NSImageFlags")
+        reps = decoder.decode("NSReps")
+        resizing_mode = decoder.decode("NSResizingMode")
         return self.__init__(
             accessibility_description,
             color,
@@ -26,5 +26,5 @@ class NSImage(NSCoding):
             resizing_mode,
             )
 
-    def encode_archive(self, archiver) -> None:
+    def encode_archive(self, coder) -> None:
         pass
