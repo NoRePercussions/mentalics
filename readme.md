@@ -21,13 +21,14 @@ print(explorer._classes)
 Decoding a known archive (not stable):
 
 ```python3
-from mentalics import Dearchiver, NSCoding
+from mentalics import Unarchiver, NSCoding
 from dataclasses import dataclass
+
 
 @dataclass
 class MyClass(NSCoding):
     my_attr: str
-    
+
     def __init_from_archive__(self, decoder) -> "NSCoding":
         my_attr = decoder.decode("myAttr")
         return self.__init__(myattr=my_attr)
@@ -36,12 +37,11 @@ class MyClass(NSCoding):
         encoder.encode(self.my_attr, for_key="myAttr")
 
 
-dearchiver = Dearchiver()
-dearchiver.set_class(MyClass, "MyClass")
-
 with open("my.plist", "rb") as file:
-    root = dearchiver.load(file)
-
+    dearchiver = Unarchiver(file)
+    dearchiver.set_class(MyClass, "MyClass")
+    
+root = dearchiver.decode()
 print(root)
 ```
 
