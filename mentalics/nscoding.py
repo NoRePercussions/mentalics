@@ -27,3 +27,23 @@ class NSCoding:
 
     def encode_archive(self, coder) -> None:
         return
+
+
+class AutoNSCoding(NSCoding):
+    """
+    Automatically add NSCoding support to classes.
+    Best mixed with dataclasses.
+
+    ```
+    @dataclass
+    class MyClass(AutoNSCoding):
+        myData: int
+    ```
+    """
+
+    def __init_from_archive__(self, decoder: "Unarchiver") -> "NSCoding":
+        keys = decoder._current_undecoded_keys
+        self.__init__(**{key: decoder.decode(key) for key in keys})
+
+    def encode_archive(self, coder) -> None:
+        return
