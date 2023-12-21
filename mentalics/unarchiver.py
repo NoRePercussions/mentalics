@@ -90,7 +90,9 @@ class Unarchiver:
         archived_obj = container[key]
 
         obj = self._decode(archived_obj)
-        self._finish_decoding()
+
+        if self._at_top_level:
+            self._finish_decoding()
         return obj
 
     def _decode(self, archived_object: t.Any):
