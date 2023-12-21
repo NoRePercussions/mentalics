@@ -1,7 +1,7 @@
 import typing as t
 
 if t.TYPE_CHECKING:
-    from .dearchiver import Decoder
+    from .unarchiver import Unarchiver
 
 
 class NSCoding:
@@ -22,7 +22,7 @@ class NSCoding:
             archiver.encode("myAttr", self.myAttr)
     """
 
-    def __init_from_archive__(self, decoder: "Decoder") -> "NSCoding":
+    def __init_from_archive__(self, decoder: "Unarchiver") -> "NSCoding":
         return self
 
     def encode_archive(self, coder) -> None:
