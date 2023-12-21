@@ -3,7 +3,7 @@
 > [!WARNING]  
 > This library is not stable yet.
 
-`mentalics` is designed primarily to read, write, and analyze NSKeyedArchiver-generated archives as Python objects. It is designed to reflect the `NSCoder` interface, handle circular references, and efficiently work through unknown classes and files.
+`mentalics` is designed primarily to read, write, and analyze NSKeyedArchiver-generated archives as Python object graphs. It is designed to reflect the `NSCoder` interface, handle circular references, and efficiently work through unknown classes and files.
 
 ## Usage
 
@@ -18,7 +18,7 @@ with open("my.plist", "rb") as file:
 print(explorer._classes)
 ```
 
-Decoding a known archive (not stable):
+Decoding a known archive:
 
 ```python3
 from mentalics import Unarchiver, NSCoding
@@ -31,7 +31,7 @@ class MyClass(NSCoding):
 
     def __init_from_archive__(self, decoder) -> "NSCoding":
         my_attr = decoder.decode("myAttr")
-        return self.__init__(myattr=my_attr)
+        return self.__init__(my_attr)
 
     def encode_archive(self, encoder) -> None:
         encoder.encode(self.my_attr, for_key="myAttr")
@@ -54,7 +54,6 @@ However, there is mismatched support for desirable features:
 - Handling circular references (ccl-bplist)
 - NSCoder/NSCoding-like interface (bpylist, bpylist2)
 - Simple handling of NSValues (none)
-- Type hints instead of specifying classes (none)
 - Exploring archives with unknown structure (ccl-bplist)
 - Generating code for classes from archives (none)
 
