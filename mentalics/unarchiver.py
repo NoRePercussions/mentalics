@@ -4,11 +4,11 @@ from collections import deque
 from copy import copy
 from functools import wraps
 from queue import Queue
+from warnings import warn
 
 from .ns_keyed_archive import NSKeyedArchive
 from .ns_types import NS_TYPES
 from .nscoding import NSCoding
-
 
 NULL_UID = pl.UID(0)
 ARCHIVE_VERSION = 100_000
@@ -21,9 +21,9 @@ class Unarchiver:
 
     ```
     with open("my.plist", "rb") as file:
-        dearchiver = Dearchiver(file)
+        unarchiver = Unarchiver(file)
 
-    dearchiver.decodeObject
+    unarchiver.decode()
     ```
     """
 
@@ -32,7 +32,10 @@ class Unarchiver:
     _class_map: dict[str, type[NSCoding]]
 
     _current_container_stack: deque[dict[str, t.Any]]
+    _keys_to_decode_stack: deque[set[str]]
     _decode_later_queue: deque[tuple[dict, NSCoding]]
+
+    _error_on_ignored_attributes: bool
 
     @property
     def _at_top_level(self):
@@ -44,16 +47,28 @@ class Unarchiver:
     def _current_container(self) -> dict[str, t.Any]:
         return self._current_container_stack[-1]
 
-    def __init__(self, fp: t.IO, class_map: t.Optional[dict[str, type[NSCoding]]] = None):
+    @property
+    def _current_undecoded_keys(self) -> set[str]:
+        return self._keys_to_decode_stack[-1]
+
+    @_current_undecoded_keys.setter
+    def _current_undecoded_keys(self, value) -> None:
+        self._keys_to_decode_stack[-1] = value
+
+    def __init__(self, fp: t.IO, class_map: t.Optional[dict[str, type[NSCoding]]] = None,
+                 error_on_ignored_attributes: bool = True):
         self._archive = NSKeyedArchive(fp)
         assert self._archive.version == ARCHIVE_VERSION
         self._objects = {}
         self._class_map = class_map if class_map is not None else copy(NS_TYPES)
 
         self._current_container_stack = deque()
-        self._current_container_stack.append(self._archive.top)
+        self._keys_to_decode_stack = deque()
+        self._push_container(self._archive.top)
 
         self._decode_later_queue = deque()
+
+        self._error_on_ignored_attributes = error_on_ignored_attributes
 
     def decode(self, key: t.Optional[str] = None):
         container = self._current_container
@@ -69,6 +84,8 @@ class Unarchiver:
 
         if key not in container:
             raise ValueError(f"Key {key} not found on the current object")
+
+        self._current_undecoded_keys = self._current_undecoded_keys.difference({key})
 
         archived_obj = container[key]
 
@@ -127,13 +144,17 @@ class Unarchiver:
         return key
 
     @staticmethod
-    def _unsanitize_key(key: str):
+    def _unsanitize_key(key: str) -> str:
         """
         Inverse of NSKeyedUnarchiver._sanitize_key
         """
         if key.startswith("$"):
             return key[1:]
         return key
+
+    @staticmethod
+    def _is_key_internal(key: str) -> bool:
+        return len(key) >= 2 and key[0] == "$" and key[1] != "$"
 
     @staticmethod
     def _is_class(archived_object: t.Any):
@@ -180,9 +201,22 @@ class Unarchiver:
 
     def _push_container(self, container: dict):
         self._current_container_stack.append(container)
+        # We also want to track what keys need to be decoded,
+        # so we can give appropriate warnings when keys are
+        # forgotten
+        self._keys_to_decode_stack.append(self._keys_to_decode(container))
 
     def _pop_container(self) -> dict:
+        if self._error_on_ignored_attributes and self._current_undecoded_keys:
+            cls = self._class_of(self._current_container)
+            raise ValueError(f"Keywords of {cls} not decoded: {self._current_undecoded_keys}. Disable with error_on_ignored_attributes=False")
+
+        self._keys_to_decode_stack.pop()
         return self._current_container_stack.pop()
+
+    def _keys_to_decode(self, container: dict) -> set[str]:
+        all_keys = set(container.keys())
+        return {self._unsanitize_key(k) for k in all_keys if not self._is_key_internal(k)}
 
     def _finish_decoding(self) -> None:
         """

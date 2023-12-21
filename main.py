@@ -7,7 +7,7 @@ test_file = "test.plist"
 
 
 with open(test_file, "rb") as f:
-    unarchiver = Unarchiver(f)
+    unarchiver = Unarchiver(f, error_on_ignored_attributes=False)
 
     unarchiver.set_class(Ignore, "NSValue")
     unarchiver.set_class(Ignore, "KeyCommand")
