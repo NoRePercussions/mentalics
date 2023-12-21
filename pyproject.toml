@@ -1,16 +1,24 @@
 [tool.poetry]
-name = "cfanalyzer"
-version = "0.1.0"
-description = ""
-authors = ["NoRePercussions <tucker@tuckershea.com>"]
+name = "mentalics"
+version = "0.2.0"
+authors = ["Tucker Shea <tucker@tuckershea.com>"]
+description = "Python NSKeyedArchiver explorer, archiver, and dearchiver"
 readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.3"
+
+[project.urls]
+Homepage = "https://github.com/NoRePercussions/mentalics"
+Issues = "https://github.com/NoRePercussions/mentalics/issues"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-setuptools = "^69.0.2"
-
-
-[tool.poetry.group.dev.dependencies]
 setuptools = "^69.0.2"
 
 [build-system]
