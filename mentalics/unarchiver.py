@@ -149,7 +149,31 @@ class Unarchiver:
         archived_class = self._archive.objects[archived_class_ref]
         assert self._is_class(archived_class)
         class_name = archived_class["$classname"]
+
+        if class_name == "NSValue":
+            class_name = self._special_class_of_nsvalue(archived_instance)
+
+        if class_name not in self._class_map:
+            raise ValueError(f"Class {class_name} not set on unarchiver")
+
         return self._class_map[class_name]
+
+    def _special_class_of_nsvalue(self, archived_instance: dict) -> str:
+        """
+        For compatibility reasons, Obj-C struct types like NSPoint
+        are archived as "special" NSValues. In order to provide a
+        more natural interface here, we look them up specially.
+        """
+        special = archived_instance["NS.special"]
+
+        special_class_names = {
+            0: "NSValue",
+            1: "NSPoint",
+            2: "NSSize",
+            # other types?
+            }
+
+        return special_class_names[special]
 
     def _decode_later(self, archived_obj: dict, obj: NSCoding):
         self._decode_later_queue.append((archived_obj, obj))
