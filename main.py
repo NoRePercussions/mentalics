@@ -3,9 +3,6 @@ from other_types import Ignore
 
 test_file = "test.plist"
 
-
-
-
 with open(test_file, "rb") as f:
     unarchiver = Unarchiver(f, error_on_ignored_attributes=False)
 
