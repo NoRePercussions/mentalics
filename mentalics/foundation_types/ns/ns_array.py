@@ -1,4 +1,4 @@
-from ..nscoding import NSCoding
+from mentalics.nscoding import NSCoding
 
 
 class NSArray(NSCoding, list):

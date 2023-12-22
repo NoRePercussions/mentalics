@@ -1,4 +1,4 @@
-from ..nscoding import NSCoding
+from mentalics.nscoding import NSCoding
 
 
 class NSDictionary(NSCoding, dict):

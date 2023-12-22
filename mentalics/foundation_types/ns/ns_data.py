@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..nscoding import NSCoding
+from mentalics.nscoding import NSCoding
 
 
 @dataclass

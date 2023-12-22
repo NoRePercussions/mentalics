@@ -1,7 +1,7 @@
+import typing as t
 from dataclasses import dataclass
 
-from ..nscoding import NSCoding
-import typing as t
+from mentalics.nscoding import NSCoding
 
 
 @dataclass
